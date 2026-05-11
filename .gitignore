@@ -1,4 +1,5 @@
-# Bytecode
+# Build
+*.egg-info/
 __pycache__/
 *.pyc
 
