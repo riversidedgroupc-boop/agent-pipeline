@@ -53,3 +53,25 @@ class PipelineStatus(BaseModel):
     project: str
     updated: datetime = Field(default_factory=datetime.now)
     stages: list[PipelineStage] = Field(default_factory=list)
+
+
+class ModelConfig(BaseModel):
+    """LLM model configuration."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    provider: str = "anthropic"
+    model: str = "claude-sonnet-4-6"
+    max_tokens: int = 8192
+    temperature: float = 0.3
+
+
+class PipelineConfig(BaseModel):
+    """Top-level pipeline configuration."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    model: ModelConfig = Field(default_factory=ModelConfig)
+    retry: int = Field(default=2, description="Max retries per agent on failure")
+    output_dir: str = "examples"
+    verbose: bool = False
