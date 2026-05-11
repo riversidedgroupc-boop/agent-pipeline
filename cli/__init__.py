@@ -10,6 +10,7 @@ import click
 from core.checks import check_pipeline
 from core.config import load_config
 from core.engine import PipelineEngine
+from core.runner import RunnerError
 from core.template import (
     all_agents,
     list_agents,
@@ -123,11 +124,17 @@ def run(project_name: str, agent_id: str | None, from_agent: str | None) -> None
     """
     root = Path.cwd()
     config = load_config(root)
-    engine = PipelineEngine(root, config)
+    try:
+        engine = PipelineEngine(root, config)
+    except RunnerError as e:
+        raise click.ClickException(str(e)) from e
 
     if agent_id:
         click.secho(f"Running single agent '{agent_id}' for '{project_name}'...", fg="cyan", bold=True)
-        result = engine.run_single(project_name, agent_id)
+        try:
+            result = engine.run_single(project_name, agent_id)
+        except ValueError as e:
+            raise click.ClickException(str(e)) from e
         click.echo()
         if result.success:
             click.secho(f"Agent {agent_id} complete — {result.tokens_used} tokens, {result.duration_ms/1000:.1f}s", fg="green")
@@ -139,7 +146,10 @@ def run(project_name: str, agent_id: str | None, from_agent: str | None) -> None
         else:
             click.secho(f"Running pipeline for '{project_name}'...", fg="cyan", bold=True)
 
-        result = engine.run_all(project_name, from_agent=from_agent)
+        try:
+            result = engine.run_all(project_name, from_agent=from_agent)
+        except ValueError as e:
+            raise click.ClickException(str(e)) from e
 
         click.echo()
         if result.all_success:

@@ -1,0 +1,5 @@
+anthropic>=0.100.0
+click>=8.1
+pydantic>=2.0
+pyyaml>=6.0
+rich>=15.0.0

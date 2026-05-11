@@ -3,6 +3,7 @@ Pipeline configuration loader.
 
 Reads pipeline.yaml at project root, merges with environment variables.
 API keys are NEVER stored in YAML — they come from env vars only.
+Loads .env file from project root automatically if present.
 """
 from __future__ import annotations
 
@@ -18,6 +19,21 @@ class ConfigLoadError(Exception):
     """Raised when required config is missing."""
 
 
+def _load_dotenv(root: Path) -> None:
+    """Load .env file from root into os.environ if present. No-op if absent."""
+    dotenv_path = root / ".env"
+    if not dotenv_path.exists():
+        return
+    for line in dotenv_path.read_text(encoding="utf-8").splitlines():
+        line = line.strip()
+        if not line or line.startswith("#") or "=" not in line:
+            continue
+        key, _, value = line.partition("=")
+        key, value = key.strip(), value.strip()
+        if key and key not in os.environ:
+            os.environ[key] = value
+
+
 def _env_or_raise(key: str) -> str:
     val = os.getenv(key)
     if not val:
@@ -29,6 +45,8 @@ def _env_or_raise(key: str) -> str:
 
 
 def load_config(root: Path) -> PipelineConfig:
+    """Load pipeline config from pipeline.yaml. Loads .env if present."""
+    _load_dotenv(root)
     """Load pipeline config from pipeline.yaml, merge env vars for secrets."""
     config_path = root / "pipeline.yaml"
 

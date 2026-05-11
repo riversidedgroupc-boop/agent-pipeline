@@ -11,8 +11,18 @@ dependencies = [
     "rich>=15.0.0",
 ]
 
+[build-system]
+requires = ["setuptools>=75.0"]
+build-backend = "setuptools.build_meta"
+
 [project.scripts]
 pipeline = "cli.__init__:cli"
+
+[tool.uv]
+package = true
+
+[tool.setuptools.packages.find]
+include = ["core*", "cli*"]
 
 [tool.ruff]
 target-version = "py312"

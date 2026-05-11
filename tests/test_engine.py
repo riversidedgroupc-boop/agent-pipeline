@@ -1,6 +1,8 @@
 """Tests for core/engine.py"""
 from pathlib import Path
 import pytest
+from click.testing import CliRunner
+from cli import cli
 from core.engine import PipelineEngine, EngineResult
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -33,6 +35,17 @@ def test_run_all_rejects_bad_from_agent():
     engine = PipelineEngine(ROOT)
     with pytest.raises(ValueError, match="not found"):
         engine.run_all("test", from_agent="99-nonexistent")
+
+
+def test_cli_reports_bad_from_agent_without_traceback():
+    """CLI shows a concise Click error for invalid --from values."""
+    runner = CliRunner()
+    with runner.isolated_filesystem():
+        result = runner.invoke(cli, ["run", "demo", "--from", "99-nonexistent"])
+    assert result.exit_code != 0
+    assert "Error:" in result.output
+    assert "99-nonexistent" in result.output
+    assert "Traceback" not in result.output
 
 
 def test_engine_result_summary():

@@ -1,5 +1,7 @@
 # Agent Pipeline
 
+详细说明书见：[docs/AGENT_PIPELINE_MANUAL.md](docs/AGENT_PIPELINE_MANUAL.md)
+
 硬件产品开发多 Agent 协作框架 — 光机电一体化设备设计流水线。
 
 ## 架构

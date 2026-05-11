@@ -1,0 +1,10 @@
+Metadata-Version: 2.4
+Name: agent-pipeline
+Version: 0.1.0
+Summary: 硬件产品开发多 Agent 协作框架
+Requires-Python: >=3.12
+Requires-Dist: anthropic>=0.100.0
+Requires-Dist: click>=8.1
+Requires-Dist: pydantic>=2.0
+Requires-Dist: pyyaml>=6.0
+Requires-Dist: rich>=15.0.0
