@@ -1,17 +1,15 @@
 """
-pipeline CLI — agent-pipeline project management tool.
+pipeline CLI — agent-pipeline project management and execution tool.
 """
 from __future__ import annotations
 
-import shutil
-from datetime import datetime
 from pathlib import Path
 
 import click
-import yaml
 
 from core.checks import check_pipeline
-from core.schema import PipelineStage, PipelineStatus
+from core.config import load_config
+from core.engine import PipelineEngine
 from core.template import (
     all_agents,
     list_agents,
@@ -104,6 +102,64 @@ def status() -> None:
 
     content = status_path.read_text(encoding="utf-8")
     click.echo(content)
+
+
+@cli.command()
+@click.argument("project_name")
+@click.option("--agent", "agent_id", default=None, help="Run a single agent independently (e.g. 03-optics)")
+@click.option("--from", "from_agent", default=None, help="Resume pipeline from a specific agent")
+def run(project_name: str, agent_id: str | None, from_agent: str | None) -> None:
+    """Execute agents for a project.
+
+    Each agent is fully independent — reads upstream docs from disk,
+    writes its own output. Multiple terminal windows can run different
+    agents simultaneously for different projects.
+
+    Examples:
+      pipeline run pic                    # full pipeline
+      pipeline run pic --agent 03-optics  # single agent, isolated
+      pipeline run pic --from 04-motion   # resume from mid-pipeline
+    """
+    root = Path.cwd()
+    config = load_config(root)
+    engine = PipelineEngine(root, config)
+
+    if agent_id:
+        click.secho(f"Running single agent '{agent_id}' for '{project_name}'...", fg="cyan", bold=True)
+        result = engine.run_single(project_name, agent_id)
+        click.echo()
+        if result.success:
+            click.secho(f"Agent {agent_id} complete — {result.tokens_used} tokens, {result.duration_ms/1000:.1f}s", fg="green")
+        else:
+            click.secho(f"Agent {agent_id} FAILED — {result.error}", fg="red")
+    else:
+        if from_agent:
+            click.secho(f"Running pipeline for '{project_name}' from {from_agent}...", fg="cyan", bold=True)
+        else:
+            click.secho(f"Running pipeline for '{project_name}'...", fg="cyan", bold=True)
+
+        result = engine.run_all(project_name, from_agent=from_agent)
+
+        click.echo()
+        if result.all_success:
+            click.secho(f"Pipeline complete: {result.summary}", fg="green")
+        else:
+            click.secho(f"Pipeline incomplete: {result.summary}", fg="yellow")
+
+
+@cli.command()
+def config_show() -> None:
+    """Show current pipeline configuration."""
+    root = Path.cwd()
+    config = load_config(root)
+
+    click.echo(f"Provider:   {config.model.provider}")
+    click.echo(f"Model:      {config.model.model}")
+    click.echo(f"Max tokens: {config.model.max_tokens}")
+    click.echo(f"Temperature:{config.model.temperature}")
+    click.echo(f"Retry:      {config.retry}")
+    click.echo(f"Output dir: {config.output_dir}")
+    click.echo(f"Verbose:    {config.verbose}")
 
 
 if __name__ == "__main__":
