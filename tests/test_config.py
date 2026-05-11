@@ -1,13 +1,14 @@
 """Tests for core/config.py"""
 from pathlib import Path
-import os
 import pytest
 from core.config import load_config, get_api_key, ConfigLoadError
+
+ROOT = Path(__file__).resolve().parent.parent
 
 
 def test_load_config_defaults():
     """Load config from pipeline.yaml with default values."""
-    c = load_config(Path("D:/work/agent-pipeline"))
+    c = load_config(ROOT)
     assert c.model.provider == "anthropic"
     assert c.model.model == "claude-sonnet-4-6"
     assert c.model.max_tokens == 8192

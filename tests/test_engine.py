@@ -1,6 +1,9 @@
 """Tests for core/engine.py"""
 from pathlib import Path
+import pytest
 from core.engine import PipelineEngine, EngineResult
+
+ROOT = Path(__file__).resolve().parent.parent
 
 
 def test_engine_result_empty():
@@ -20,9 +23,16 @@ def test_engine_result_with_failure():
 
 def test_engine_has_run_single_and_run_all():
     """Verify engine exposes both independent and batch execution."""
-    engine = PipelineEngine(Path("D:/work/agent-pipeline"))
+    engine = PipelineEngine(ROOT)
     assert hasattr(engine, "run_single")
     assert hasattr(engine, "run_all")
+
+
+def test_run_all_rejects_bad_from_agent():
+    """run_all raises ValueError when from_agent does not exist."""
+    engine = PipelineEngine(ROOT)
+    with pytest.raises(ValueError, match="not found"):
+        engine.run_all("test", from_agent="99-nonexistent")
 
 
 def test_engine_result_summary():

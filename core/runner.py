@@ -1,22 +1,26 @@
 """
 Single-agent LLM runner.
 
-Invokes Claude API (via anthropic SDK) with assembled prompt context.
-Handles retries, streaming display, and structured result capture.
+Invokes LLM API with assembled prompt context.
+Currently supports Anthropic provider. Openai/Deepseek stubs raise clear errors.
 """
 from __future__ import annotations
 
 import time
 from dataclasses import dataclass
-
-import anthropic
-from anthropic.types import Message
+from typing import Any
 
 from core.config import PipelineConfig, get_api_key
+
+SUPPORTED_PROVIDERS = frozenset({"anthropic"})
 
 
 class RunnerError(Exception):
     """Raised when an agent invocation fails after all retries."""
+
+
+class UnsupportedProviderError(RunnerError):
+    """Raised when the configured provider is not supported."""
 
 
 @dataclass
@@ -35,11 +39,19 @@ class AgentRunner:
 
     def __init__(self, config: PipelineConfig) -> None:
         self.config = config
-        self._client: anthropic.Anthropic | None = None
+        self._client: Any = None
+        provider = config.model.provider
+        if provider not in SUPPORTED_PROVIDERS:
+            raise UnsupportedProviderError(
+                f"Provider '{provider}' is not supported. "
+                f"Supported: {', '.join(sorted(SUPPORTED_PROVIDERS))}. "
+                f"To add a provider, implement its client in core/runner.py."
+            )
 
     @property
-    def client(self) -> anthropic.Anthropic:
+    def client(self) -> Any:
         if self._client is None:
+            import anthropic
             api_key = get_api_key(self.config.model.provider)
             self._client = anthropic.Anthropic(api_key=api_key)
         return self._client
@@ -51,7 +63,7 @@ class AgentRunner:
         last_error: str | None = None
         for attempt in range(self.config.retry + 1):
             try:
-                msg: Message = self.client.messages.create(
+                msg = self.client.messages.create(
                     model=self.config.model.model,
                     max_tokens=self.config.model.max_tokens,
                     temperature=self.config.model.temperature,
@@ -74,7 +86,7 @@ class AgentRunner:
             except Exception as e:
                 last_error = str(e)
                 if attempt < self.config.retry:
-                    wait = 2 ** attempt  # 1s, 2s, 4s backoff
+                    wait = 2 ** attempt
                     time.sleep(wait)
                 continue
 

@@ -58,8 +58,27 @@ class PipelineEngine:
         self.config = config or load_config(root)
         self.runner = AgentRunner(self.config)
 
+    def _get_ordered_ids(self) -> list[str]:
+        """Return ordered list of all agent IDs."""
+        ids: list[str] = []
+        for agent_dir in all_agents(self.root):
+            fm, _ = load_agent_doc(agent_dir)
+            ids.append(str(fm.get("id", agent_dir.name)))
+        return ids
+
     def run_single(self, project_name: str, agent_id: str) -> RunResult:
-        """Run a single agent independently. Reads upstream docs, writes output."""
+        """Run a single agent independently. Reads upstream docs, writes output.
+
+        Raises:
+            ValueError: If agent_id does not match any known agent.
+        """
+        ordered_ids = self._get_ordered_ids()
+        if agent_id not in ordered_ids:
+            raise ValueError(
+                f"Agent '{agent_id}' not found in pipeline. "
+                f"Available: {', '.join(ordered_ids)}"
+            )
+
         project_dir = self.root / self.config.output_dir / project_name
         if not project_dir.exists():
             project_dir.mkdir(parents=True)
@@ -90,15 +109,22 @@ class PipelineEngine:
         Args:
             project_name: Project directory name under output_dir.
             from_agent: If set, skip agents before this one (their outputs must exist).
+
+        Raises:
+            ValueError: If from_agent does not match any known agent ID.
         """
-        agent_dirs = all_agents(self.root)
+        ordered_ids = self._get_ordered_ids()
+
+        if from_agent is not None and from_agent not in ordered_ids:
+            raise ValueError(
+                f"Agent '{from_agent}' not found in pipeline. "
+                f"Available: {', '.join(ordered_ids)}"
+            )
+
         result = EngineResult(project=project_name)
-
         skip = from_agent is not None
-        for agent_dir in agent_dirs:
-            fm, _ = load_agent_doc(agent_dir)
-            agent_id = str(fm.get("id", agent_dir.name))
 
+        for agent_id in ordered_ids:
             if skip and agent_id != from_agent:
                 continue
             skip = False
@@ -111,6 +137,6 @@ class PipelineEngine:
                 result.completed_agents.append(agent_id)
             else:
                 result.failed_agents.append(agent_id)
-                break  # Stop pipeline on first failure
+                break
 
         return result

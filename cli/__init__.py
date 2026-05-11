@@ -28,7 +28,8 @@ def cli() -> None:
 def new(project_name: str) -> None:
     """Create a new project from agent templates."""
     root = Path.cwd()
-    project_dir = root / "examples" / project_name
+    config = load_config(root)
+    project_dir = root / config.output_dir / project_name
     if project_dir.exists():
         click.secho(f"Project '{project_name}' already exists.", fg="red")
         return

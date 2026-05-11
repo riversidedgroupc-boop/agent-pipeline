@@ -1,0 +1,20 @@
+# Bytecode
+__pycache__/
+*.pyc
+
+# Virtualenv
+.venv/
+
+# IDE
+.vscode/
+.idea/
+
+# Env
+.env
+
+# Test
+.pytest_cache/
+
+# OS
+.DS_Store
+Thumbs.db

@@ -1,5 +1,7 @@
 """Tests for core/runner.py"""
-from core.runner import RunResult, AgentRunner
+import pytest
+from core.runner import RunResult, AgentRunner, UnsupportedProviderError
+from core.schema import ModelConfig, PipelineConfig
 
 
 def test_run_result_success():
@@ -30,3 +32,21 @@ def test_run_result_defaults():
     assert result.tokens_used == 0
     assert result.duration_ms == 0.0
     assert result.error is None
+
+
+def test_agent_runner_rejects_unsupported_provider():
+    """AgentRunner raises UnsupportedProviderError for non-anthropic providers."""
+    config = PipelineConfig(
+        model=ModelConfig(provider="openai", model="gpt-4o"),
+    )
+    with pytest.raises(UnsupportedProviderError, match="openai"):
+        AgentRunner(config)
+
+
+def test_agent_runner_accepts_anthropic():
+    """AgentRunner accepts anthropic provider (does not require API key at init)."""
+    config = PipelineConfig(
+        model=ModelConfig(provider="anthropic", model="claude-sonnet-4-6"),
+    )
+    runner = AgentRunner(config)
+    assert runner.config.model.provider == "anthropic"

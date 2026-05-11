@@ -30,7 +30,7 @@ def check_pipeline(root: Path) -> list[str]:
             issues.append(f"{d.name}: agent.md not found")
             continue
 
-    # Check upstream/downstream references are valid
+    # Check upstream/downstream references point to existing agents
     for aid, d in agent_map.items():
         fm, _ = load_agent_doc(d)
         upstream: list[str] = fm.get("upstream", [])
@@ -44,28 +44,33 @@ def check_pipeline(root: Path) -> list[str]:
             if dw not in agent_map:
                 issues.append(f"{aid}: downstream agent '{dw}' not found")
 
-    # Check the chain is connected (no orphan agents)
+    # Check chain connectivity: every intermediate agent must be referenced
+    # by at least one other agent as upstream or downstream
     all_ids = set(agent_map)
-    has_upstream: set[str] = set()
-    has_downstream: set[str] = set()
+    referenced: set[str] = set()
     for aid, d in agent_map.items():
         fm, _ = load_agent_doc(d)
-        has_upstream.update(fm.get("upstream", []))
-        has_downstream.update(fm.get("downstream", []))
+        referenced.update(fm.get("upstream", []))
+        referenced.update(fm.get("downstream", []))
 
-    for aid in all_ids:
-        # first agent has no upstream
-        if aid == sorted(all_ids)[0]:
+    # The first and last agents in sorted order can be endpoints
+    sorted_ids = sorted(all_ids)
+    orphans: list[str] = []
+    for aid in sorted_ids:
+        if aid == sorted_ids[0] or aid == sorted_ids[-1]:
             continue
-        # last agent has no downstream
-        if aid == sorted(all_ids)[-1]:
-            continue
+        if aid not in referenced:
+            orphans.append(aid)
 
-    if not issues:
-        # Check required files exist for each agent
-        for aid, d in agent_map.items():
-            for fname in ("agent.md", "template.md", "checklist.md"):
-                if not (d / fname).exists():
-                    issues.append(f"{aid}: missing {fname}")
+    if orphans:
+        issues.append(
+            f"Orphan agents (not referenced by any other agent): {', '.join(orphans)}"
+        )
+
+    # Check required files exist for each agent
+    for aid, d in agent_map.items():
+        for fname in ("agent.md", "template.md", "checklist.md"):
+            if not (d / fname).exists():
+                issues.append(f"{aid}: missing {fname}")
 
     return issues
