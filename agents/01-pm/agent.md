@@ -8,7 +8,7 @@ industries:
   - "高速视觉检测设备"
   - "自动化非标设备"
 upstream: []
-downstream: ["02-mechanical"]
+downstream: ["02-mechanical", "06-review"]
 outputs:
   - "产品规格书"
   - "缺陷分类表"

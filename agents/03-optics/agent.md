@@ -8,7 +8,7 @@ industries:
   - "高速视觉检测设备"
   - "自动化非标设备"
 upstream: ["02-mechanical"]
-downstream: ["04-motion"]
+downstream: ["04-motion", "06-review"]
 outputs:
   - "光源设计方案"
   - "镜头选型方案"

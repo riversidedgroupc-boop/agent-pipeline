@@ -8,7 +8,7 @@ industries:
   - "高速视觉检测设备"
   - "自动化非标设备"
 upstream: ["01-pm"]
-downstream: ["03-optics"]
+downstream: ["03-optics", "06-review"]
 outputs:
   - "设备结构方案"
   - "相机安装方案"

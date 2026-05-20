@@ -5,6 +5,7 @@ __pycache__/
 
 # Virtualenv
 .venv/
+.venv-codex/
 
 # IDE
 .vscode/
@@ -15,7 +16,22 @@ __pycache__/
 
 # Test
 .pytest_cache/
+.pytest-cache-codex/
 
 # OS
 .DS_Store
 Thumbs.db
+
+# GeniusForge runtime
+.geniusforge/
+
+# Generated project outputs
+examples/
+tmp_verify_outputs/
+
+# Local dev config
+.mcp.json
+
+# Brainstorming
+.superpowers/
+docs/superpowers/

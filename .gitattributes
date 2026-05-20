@@ -1,0 +1,14 @@
+# Normalize line endings: convert to LF in the repo, then checkout
+# as native on each platform (CRLF on Windows, LF on macOS/Linux).
+*       text=auto
+
+# Explicit binary files
+*.png   binary
+*.jpg   binary
+*.jpeg  binary
+*.gif   binary
+*.ico   binary
+*.pdf   binary
+*.docx  binary
+*.pptx  binary
+*.xlsx  binary

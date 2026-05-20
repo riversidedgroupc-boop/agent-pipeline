@@ -9,8 +9,8 @@ ROOT = Path(__file__).resolve().parent.parent
 def test_load_config_defaults():
     """Load config from pipeline.yaml with default values."""
     c = load_config(ROOT)
-    assert c.model.provider == "anthropic"
-    assert c.model.model == "claude-sonnet-4-6"
+    assert c.model.provider == "deepseek"
+    assert c.model.model == "deepseek-v4-pro"
     assert c.model.max_tokens == 8192
     assert c.model.temperature == 0.3
     assert c.retry == 2

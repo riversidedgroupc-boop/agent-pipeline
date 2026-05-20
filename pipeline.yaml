@@ -2,8 +2,8 @@
 # API keys come from environment variables — NEVER put them here.
 
 model:
-  provider: anthropic        # currently supported: anthropic
-  model: claude-sonnet-4-6   # or another Anthropic Messages API model
+  provider: deepseek          # anthropic, deepseek
+  model: deepseek-v4-pro      # deepseek-chat (V3), deepseek-reasoner (R1), deepseek-v4-pro
   max_tokens: 8192
   temperature: 0.3
 

@@ -8,11 +8,18 @@ Every agent is independent -- reads from filesystem, writes to its own file.
 """
 from __future__ import annotations
 
+import time as _time
 from dataclasses import dataclass, field
 from pathlib import Path
 
 from core.config import PipelineConfig, load_config
 from core.context import AgentContext, build_agent_prompt, load_agent_context
+from core.outputs import (
+    agent_output_path,
+    docx_output_path,
+    next_versioned_agent_output_path,
+    next_versioned_docx_output_path,
+)
 from core.runner import AgentRunner, RunResult
 from core.template import all_agents, load_agent_doc
 
@@ -66,8 +73,11 @@ class PipelineEngine:
             ids.append(str(fm.get("id", agent_dir.name)))
         return ids
 
-    def run_single(self, project_name: str, agent_id: str) -> RunResult:
+    def run_single(self, project_name: str, agent_id: str, feedback: str = "") -> RunResult:
         """Run a single agent independently. Reads upstream docs, writes output.
+
+        If feedback is provided, it is appended to the user prompt as revision
+        instructions, and the output is written to a versioned filename.
 
         Raises:
             ValueError: If agent_id does not match any known agent.
@@ -83,10 +93,20 @@ class PipelineEngine:
         if not project_dir.exists():
             project_dir.mkdir(parents=True)
 
-        output_path = project_dir / f"{agent_id}-方案.md"
+        output_path = agent_output_path(project_dir, agent_id)
 
         ctx = load_agent_context(self.root, agent_id, project_dir)
         system, user = build_agent_prompt(ctx)
+
+        if feedback:
+            # Append feedback as revision instruction
+            user += f"\n\n---\n# 修改意见（来自人工审阅）\n\n{feedback}\n\n请基于以上修改意见重新生成方案。必须逐条处理每一条反馈，并在方案末尾附加修改说明。"
+            # Save feedback for record
+            fb_path = project_dir / f"{agent_id}-feedback.md"
+            existing = fb_path.read_text(encoding="utf-8") if fb_path.exists() else ""
+            fb_entry = f"\n\n## {_time.strftime('%Y-%m-%d %H:%M')}\n\n{feedback}"
+            fb_path.write_text(existing + fb_entry, encoding="utf-8")
+            output_path = next_versioned_agent_output_path(project_dir, agent_id)
 
         if self.config.verbose:
             upstream_list = list(ctx.upstream_docs.keys())
@@ -97,6 +117,17 @@ class PipelineEngine:
 
         if result.success:
             output_path.write_text(result.output, encoding="utf-8")
+            result.output_path = output_path
+
+            # Produce .docx as the canonical output
+            from feishu.export import markdown_to_docx
+            docx_path = (
+                next_versioned_docx_output_path(project_dir, agent_id)
+                if feedback
+                else docx_output_path(project_dir, agent_id)
+            )
+            markdown_to_docx(output_path, docx_path, title=f"{agent_id} 方案")
+
             print(f"  [{agent_id}] done -- {result.tokens_used} tokens, {result.duration_ms/1000:.1f}s")
         else:
             print(f"  [{agent_id}] FAILED -- {result.error}")

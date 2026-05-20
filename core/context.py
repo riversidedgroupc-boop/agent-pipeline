@@ -10,6 +10,7 @@ import re
 from dataclasses import dataclass, field
 from pathlib import Path
 
+from core.outputs import latest_agent_output_path
 from core.template import load_agent_doc, load_template
 
 HTML_COMMENT_RE = re.compile(r"<!--.*?-->", re.DOTALL)
@@ -22,6 +23,7 @@ class AgentContext:
     agent_body: str
     template_body: str
     upstream_docs: dict[str, str] = field(default_factory=dict)
+    requirements: str = ""
 
 
 def _strip_html_comments(text: str) -> str:
@@ -41,6 +43,11 @@ def _build_system_prompt(agent_body: str) -> str:
 def _build_user_prompt(ctx: AgentContext) -> str:
     """Build user prompt from upstream documents + output template."""
     parts: list[str] = []
+
+    # Customer requirements always come first
+    if ctx.requirements:
+        parts.append("# 客户需求\n")
+        parts.append(ctx.requirements + "\n")
 
     if ctx.upstream_docs:
         parts.append("# 上游输入文档\n")
@@ -86,13 +93,20 @@ def load_agent_context(root: Path, agent_id: str, project_dir: Path) -> AgentCon
     upstream_ids: list[str] = fm.get("upstream", [])
     upstream_docs: dict[str, str] = {}
     for uid in upstream_ids:
-        doc_path = project_dir / f"{uid}-方案.md"
+        doc_path = latest_agent_output_path(project_dir, uid)
         if doc_path.exists():
             upstream_docs[uid] = doc_path.read_text(encoding="utf-8")
+
+    # Read customer requirements (shared input for all agents)
+    requirements = ""
+    req_path = project_dir / "requirements.md"
+    if req_path.exists():
+        requirements = req_path.read_text(encoding="utf-8").strip()
 
     return AgentContext(
         agent_id=agent_id,
         agent_body=agent_body,
         template_body=template_body,
         upstream_docs=upstream_docs,
+        requirements=requirements,
     )

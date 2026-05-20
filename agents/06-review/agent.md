@@ -7,7 +7,7 @@ industries:
   - "金属管棒线材检测设备"
   - "高速视觉检测设备"
   - "自动化非标设备"
-upstream: ["05-algorithm"]
+upstream: ["01-pm", "02-mechanical", "03-optics", "04-motion", "05-algorithm"]
 downstream: []
 outputs:
   - "接口一致性审查报告"

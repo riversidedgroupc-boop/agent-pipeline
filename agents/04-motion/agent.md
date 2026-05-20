@@ -8,7 +8,7 @@ industries:
   - "高速视觉检测设备"
   - "自动化非标设备"
 upstream: ["03-optics"]
-downstream: ["05-algorithm"]
+downstream: ["05-algorithm", "06-review"]
 outputs:
   - "采集时序方案"
   - "运动控制架构"

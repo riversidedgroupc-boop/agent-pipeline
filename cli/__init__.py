@@ -3,10 +3,12 @@ pipeline CLI — agent-pipeline project management and execution tool.
 """
 from __future__ import annotations
 
+import sys
 from pathlib import Path
 
 import click
 
+from cli.feishu_cmd import feishu
 from core.checks import check_pipeline
 from core.config import load_config
 from core.engine import PipelineEngine
@@ -18,10 +20,15 @@ from core.template import (
     load_template,
 )
 
+sys.stdout.reconfigure(encoding="utf-8")
+
 
 @click.group()
 def cli() -> None:
     """Agent pipeline — 硬件产品开发多 Agent 协作框架."""
+
+
+cli.add_command(feishu)
 
 
 @cli.command()
@@ -36,13 +43,16 @@ def new(project_name: str) -> None:
         return
 
     project_dir.mkdir(parents=True)
+    from feishu.export import markdown_to_docx
     for agent_dir in all_agents(root):
         tmpl_path = agent_dir / "template.md"
         if tmpl_path.exists():
             _, body = load_template(agent_dir)
-            out = project_dir / f"{agent_dir.name}-方案.md"
-            out.write_text(body, encoding="utf-8")
-            click.echo(f"  created {out.relative_to(root)}")
+            out_md = project_dir / f"{agent_dir.name}-方案.md"
+            out_md.write_text(body, encoding="utf-8")
+            out_docx = project_dir / f"{agent_dir.name}-方案.docx"
+            markdown_to_docx(out_md, out_docx, title=agent_dir.name)
+            click.echo(f"  created {out_md.relative_to(root)} → {out_docx.name}")
 
     click.secho(f"\nProject '{project_name}' created at {project_dir}", fg="green")
 
@@ -156,6 +166,7 @@ def run(project_name: str, agent_id: str | None, from_agent: str | None) -> None
             click.secho(f"Pipeline complete: {result.summary}", fg="green")
         else:
             click.secho(f"Pipeline incomplete: {result.summary}", fg="yellow")
+
 
 
 @cli.command()
