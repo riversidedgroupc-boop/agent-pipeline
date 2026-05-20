@@ -396,11 +396,19 @@ def listen(ctx: click.Context, chat_id: str | None, interval: int) -> None:
                     if text.startswith("{"):
                         continue
 
+                    # ── @mention gate ──
+                    # During idle (no active project): require @mention to respond.
+                    # During active project flow: accept all messages from any user.
+                    st = states.get(cid)
+                    has_mention = "@" in text
+                    if st is None or st.phase == "idle":
+                        if not has_mention:
+                            continue  # ignore casual chat
+
                     cmd, args = parse_bot_command(text)
                     role = msg.sender_name or "工程师"
 
                     # ── Project-creation state machine ──
-                    st = states.get(cid)
                     if st is not None and st.phase != "idle":
                         click.echo(f"\n[{cid[:8]}][{role}] [phase={st.phase}] {text[:120]}")
                         _handle_state_machine(
@@ -498,6 +506,15 @@ def _handle_state_machine(
     role: str,
 ) -> None:
     """Process a message in the context of the project-creation state machine."""
+
+    # ── "新建项目" can reset at any phase ──
+    cmd, _ = parse_bot_command(text)
+    if cmd == "new_project":
+        states[chat_id] = ProjectState(phase="collecting_name")
+        _save_project_states(root, states)
+        client.send_text(chat_id, "🚀 收到！已放弃上一个项目流程。请输入新项目名称（例如：手机屏幕检测）：")
+        click.echo("  → reset from phase={}, entering new project flow".format(st.phase))
+        return
 
     if st.phase == "collecting_name":
         # User provides project name — strip @mentions first
